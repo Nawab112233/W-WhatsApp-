@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>W WhatsApp - Complete Messenger & Admin Center</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    :root {
+      --wa-bg: #0c1317;
+      --wa-panel: #111b21;
+      --wa-header: #202c33;
+      --wa-input: #2a3942;
+      --wa-border: #222d34;
+      --wa-outgoing: #005c4b;
+      --wa-incoming: #202c33;
+      --wa-green: #00a884;
+      --wa-blue-tick: #53bdeb;
+      --wa-text: #e9edef;
+      --wa-subtext: #8696a0;
+    }
+
+    body {
+      background-color: var(--wa-bg);
+      color: var(--wa-text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      user-select: none;
+      -webkit-font-smoothing: antialiased;
+      overflow: hidden;
+    }
+
+    /* WhatsApp custom subtle doodle background pattern */
+    .whatsapp-chat-bg {
+      background-color: #0b141a;
+      background-image: 
+        radial-gradient(circle at 50% 50%, rgba(18, 30, 36, 0.4) 0%, rgba(11, 20, 26, 0.95) 100%),
+        url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%232a3942' fill-opacity='0.12' fill-rule='evenodd'%3E%3Cpath d='M11 14a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm10 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2zM16 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm26 27a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm-8-3a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm18 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-5 5a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-8 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm3-10a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm20 28a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm-30-2a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm-14-16a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm44-6a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm-22 28a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm12-4a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-24 2a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm34-18a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm-44-6a1 1 0 1 0 0-2 1 1 0 0 0 0 2z'/%3E%3C/g%3E%3C/svg%3E");
+    }
+
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(134, 150, 160, 0.25);
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(134, 150, 160, 0.45);
+    }
+  </style>
+</head>
+<body class="h-screen w-screen bg-[#0c1317] text-[#e9edef] overflow-hidden flex flex-col">
+
+  <div id="app" class="h-full w-full relative flex overflow-hidden">
+    <!-- Dynamic Single File App Container -->
+  </div>
+
+  <!-- Notification Toast Container -->
+  <div id="toast" class="fixed top-5 right-5 z-[100] hidden bg-[#00a884] text-[#111b21] font-bold text-xs px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2 transition-all">
+    <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+    <span id="toast-text">Success</span>
+  </div>
+
+  <script>
+    /* =========================================================================
+       AUDIO UTILITIES (Synthesized via Web Audio API - Zero External Files)
+       ========================================================================= */
+    let audioCtx = null;
+    function getAudioCtx() {
+      if (!audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) audioCtx = new AudioContextClass();
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      return audioCtx;
+    }
+
+    function playSentSound() {
+      try {
+        const ctx = getAudioCtx();
+        if (!ctx) return;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        const now = ctx.currentTime;
+        osc.frequency.setValueAtTime(500, now);
+        osc.frequency.exponentialRampToValueAtTime(1000, now + 0.08);
+        gain.gain.setValueAtTime(0.12, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.09);
+      } catch (e) {}
+    }
+
+    function playReceivedSound() {
+      try {
+        const ctx = getAudioCtx();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        const osc1 = ctx.createOscillator();
+        const gain1 = ctx.createGain();
+        osc1.frequency.setValueAtTime(880, now);
+        gain1.gain.setValueAtTime(0.15, now);
+        gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+        osc1.connect(gain1);
+        gain1.connect(ctx.destination);
+        osc1.start(now);
+        osc1.stop(now + 0.12);
+
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.frequency.setValueAtTime(1318.5, now + 0.08);
+        gain2.gain.setValueAtTime(0.18, now + 0.08);
+        gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.28);
+        osc2.connect(gain2);
+        gain2.connect(ctx.destination);
+        osc2.start(now + 0.08);
+        osc2.stop(now + 0.3);
+      } catch (e) {}
+    }
+
+    let ringInterval = null;
+    function startRingtone() {
+      stopRingtone();
+      const burst = () => {
+        try {
+          const ctx = getAudioCtx();
+          if (!ctx) return;
+          const now = ctx.currentTime;
+          [0, 0.4].forEach(off => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.frequency.setValueAtTime(440, now + off);
+            gain.gain.setValueAtTime(0.1, now + off);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + off + 0.25);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now + off);
+            osc.stop(now + off + 0.26);
+          });
+        } catch (e) {}
+      };
+      burst();
+      ringInterval = setInterval(burst, 2500);
+    }
+    function stopRingtone() {
+      if (ringInterval) {
+        clearInterval(ringInterval);
+        ringInterval = null;
+      }
+    }
+
+    /* =========================================================================
+       APPLICATION STATE & MOCK DATA
+       ========================================================================= */
+    const STATE = {
+      user: JSON.parse(localStorage.getItem('w_whatsapp_user')) || {
+        id: 'me',
+        name: 'Sohrab Baloch',
+        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+        phone: '+1 (555) 349-8821',
+        about: 'Hey there! I am using W WhatsApp.',
+        privacySettings: {
+          isPrivateAccount: false,
+          lastSeenVisibility: 'everyone',
+          profilePhotoVisibility: 'everyone',
+          aboutVisibility: 'everyone',
+          readReceipts: true,
+          disappearingMessages: 'off',
+          silenceUnknownCallers: false,
+          appLock: false
+        }
+      },
+      currentScreen: 'messenger', // 'auth' | 'messenger' | 'settings' | 'admin'
+      authStep: 'welcome', // 'welcome' | 'phone' | 'otp' | 'profile'
+      activeTab: 'chats', // 'chats' | 'updates' | 'communities' | 'calls'
+      activeChatId: 'chat_1',
+      searchQuery: '',
+      chatFilter: 'all',
+      wallpaper: 'classic',
+      soundEnabled: true,
+      activeCall: null,
+      statusModalIndex: null,
+      selectedAdminUser: null,
+      replyTicket: null,
+      chats: [
+        {
+          id: 'chat_1',
+          name: 'Sarah Jenkins',
+          avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
+          phone: '+1 (555) 782-9901',
+          about: 'At work • Focus mode ☕',
+          online: true,
+          isPinned: true,
+          unreadCount: 2,
+          typing: false,
+          messages: [
+            { id: 'm1', senderId: 'user_1', text: 'Hey! Did you check out the new design system for W WhatsApp?', time: '10:14 AM', status: 'read', type: 'text' },
+            { id: 'm2', senderId: 'me', text: 'Yes! Dark mode contrast and emerald accents look phenomenal.', time: '10:16 AM', status: 'read', type: 'text' },
+            { id: 'm3', senderId: 'user_1', text: 'Preview launch banner mockup 🎨', time: '10:20 AM', status: 'read', type: 'image', mediaUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=80' },
+            { id: 'm4', senderId: 'user_1', text: 'Can we schedule a quick sync call at 3 PM?', time: '10:25 AM', status: 'delivered', type: 'text' },
+            { id: 'm5', senderId: 'user_1', text: 'Let me know if that time works for you 👍', time: '10:26 AM', status: 'delivered', type: 'text' }
+          ]
+        },
+        {
+          id: 'chat_2',
+          name: 'Dev Team Core 🚀',
+          avatar: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=150&auto=format&fit=crop&q=80',
+          isGroup: true,
+          unreadCount: 0,
+          messages: [
+            { id: 'm2_1', senderId: 'user_3', text: 'Sprint 24 is officially wrapped up and deployed!', time: 'Yesterday', status: 'read', type: 'text' },
+            { id: 'm2_2', senderId: 'me', text: 'Build passes with 0 errors. Great work team!', time: '09:12 AM', status: 'read', type: 'text' }
+          ]
+        },
+        {
+          id: 'chat_3',
+          name: 'Liam Chen',
+          avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+          phone: '+1 (555) 671-8890',
+          about: 'Code, coffee, repeat 💻',
+          online: false,
+          lastSeen: 'today at 8:44 AM',
+          unreadCount: 1,
+          messages: [
+            { id: 'm3_1', senderId: 'user_4', text: 'Voice note (0:34)', time: '8:46 AM', status: 'read', type: 'voice', duration: 34 },
+            { id: 'm3_2', senderId: 'user_4', text: 'Let me know your feedback on the schema!', time: '8:48 AM', status: 'delivered', type: 'text' }
+          ]
+        },
+        {
+          id: 'chat_4',
+          name: 'Emily Watson',
+          avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80',
+          phone: '+1 (555) 234-5678',
+          about: 'Always learning 📚',
+          unreadCount: 0,
+          messages: [
+            { id: 'm4_1', senderId: 'user_5', text: 'Product_Roadmap_Q4.pdf', time: 'Oct 12', status: 'read', type: 'document', fileName: 'Product_Roadmap_Q4.pdf', fileSize: '4.2 MB' }
+          ]
+        }
+      ],
+      adminUsers: [
+        { id: 'u1', name: 'Sarah Jenkins', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80', phone: '+1 (555) 782-9901', email: 'sarah.j@example.com', regDate: 'Jan 14, 2026', status: 'Active', messagesCount: 1420, location: 'San Francisco, US' },
+        { id: 'u2', name: 'Alex Rivera', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80', phone: '+1 (555) 438-1209', email: 'alex.r@example.com', regDate: 'Feb 03, 2026', status: 'Active', messagesCount: 890, location: 'Austin, US' },
+        { id: 'u3', name: 'Marcus Aurelius', avatar: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=150&auto=format&fit=crop&q=80', phone: '+1 (555) 889-1122', email: 'marcus.stoic@example.com', regDate: 'Nov 05, 2025', status: 'Blocked', messagesCount: 110, location: 'Rome, Italy' },
+        { id: 'u4', name: 'Liam Chen', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80', phone: '+1 (555) 671-8890', email: 'liam.chen@example.com', regDate: 'Mar 22, 2026', status: 'Active', messagesCount: 450, location: 'Toronto, Canada' }
+      ],
+      supportTickets: [
+        { id: 'TICK-4091', userName: 'Sarah Jenkins', userPhone: '+1 (555) 782-9901', subject: 'Cannot link WhatsApp Web on secondary tablet', message: 'When I scan the QR code from my tablet, it shows timeout.', timestamp: '15 mins ago', status: 'Pending', category: 'Linked Devices' },
+        { id: 'TICK-4089', userName: 'Marcus Aurelius', userPhone: '+1 (555) 889-1122', subject: 'Appeal regarding broadcast restriction', message: 'I was sending quotes to my book club and my account was flagged.', timestamp: '1 hour ago', status: 'Pending', category: 'Account Restriction' },
+        { id: 'TICK-4085', userName: 'Liam Chen', userPhone: '+1 (555) 671-8890', subject: 'Voice note waveform delayed on 3G network', message: 'Scrubber stays at 0:00 initially on low bandwidth.', timestamp: '3 hours ago', status: 'Resolved', category: 'Bug Report' }
+      ],
+      statuses: [
+        { id: 's1', userName: 'Sarah Jenkins', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80', time: '25m ago', mediaUrl: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800&auto=format&fit=crop&q=80', caption: 'Morning hike at sunrise 🌅 fresh air clears the mind!' },
+        { id: 's2', userName: 'Liam Chen', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80', time: '5h ago', text: '“Simplicity is prerequisite for reliability.” - Dijkstra', bgColor: 'from-blue-900 to-slate-950' }
+      ],
+      calls: [
+        { id: 'c1', name: 'Sarah Jenkins', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80', type: 'video', direction: 'incoming', time: 'Today, 10:30 AM', duration: '14 mins 20 secs' },
+        { id: 'c2', name: 'Liam Chen', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80', type: 'voice', direction: 'missed', time: 'Today, 8:44 AM' }
+      ]
+    };
+
+    function showToast(msg) {
+      const el = document.getElementById('toast');
+      const txt = document.getElementById('toast-text');
+      if (el && txt) {
+        txt.textContent = msg;
+        el.classList.remove('hidden');
+        setTimeout(() => el.classList.add('hidden'), 2200);
+      }
+    }
+
+    /* =========================================================================
+       RENDER ENGINE
+       ========================================================================= */
+    function render() {
+      const root = document.getElementById('app');
+      if (!root) return;
+
+      if (STATE.currentScreen === 'admin') {
+        root.innerHTML = renderAdmin();
+      } else if (STATE.currentScreen === 'settings') {
+        root.innerHTML = renderSettings();
+      } else if (STATE.currentScreen === 'auth') {
+        root.innerHTML = renderAuth();
+      } else {
+        root.innerHTML = renderMessenger();
+      }
+
+      lucide.createIcons();
+    }
+
+    /* 1. AUTHENTICATION & PHONE VERIFICATION SCREEN */
+    function renderAuth() {
+      return `
+        <div class="fixed inset-0 z-50 bg-[#111b21] flex flex-col items-center justify-center p-6 text-center select-none">
+          <div class="w-full max-w-sm space-y-6">
+            <div class="w-20 h-20 rounded-full bg-[#00a884]/20 border-2 border-[#00a884] flex items-center justify-center text-[#00a884] mx-auto shadow-2xl">
+              <i data-lucide="message-square" class="w-10 h-10"></i>
+            </div>
+            <h1 class="text-2xl font-bold text-[#e9edef]">Welcome to W WhatsApp</h1>
+            <p class="text-xs text-[#8696a0] leading-relaxed">
+              Read our Privacy Policy. Tap "Agree and continue" to accept the Terms of Service.
+            </p>
+            <div class="p-4 bg-[#202c33] rounded-2xl border border-[#2a3942] space-y-3 text-left">
+              <label class="text-[11px] font-semibold text-[#8696a0] uppercase">Verify Phone Number</label>
+              <input id="auth-phone" type="tel" value="${STATE.user.phone}" class="w-full bg-[#111b21] text-[#e9edef] px-3.5 py-2.5 rounded-xl border border-[#00a884] text-sm focus:outline-none" />
+              <div class="text-[11px] text-[#00a884] bg-[#00a884]/15 p-2 rounded-lg cursor-pointer" onclick="document.getElementById('auth-phone').value='+1 (555) 349-8821'; showToast('Phone set');">
+                Demo SMS OTP: <strong>482-901</strong> (Instant Auto-Verify)
+              </div>
+            </div>
+            <button onclick="STATE.currentScreen='messenger'; showToast('Logged in as ' + STATE.user.name); render();" class="w-full py-3 bg-[#00a884] hover:bg-[#008f6f] text-[#111b21] font-bold text-sm tracking-wider uppercase rounded-full shadow-lg transition-transform active:scale-95">
+              Agree and Continue
+            </button>
+            <p class="text-[11px] text-[#8696a0]">from META</p>
+          </div>
+        </div>
+      `;
+    }
+
+    /* 2. MAIN MESSENGER & TABS VIEW */
+    function renderMessenger() {
+      const activeChat = STATE.chats.find(c => c.id === STATE.activeChatId);
+
+      return `
+        <!-- Left Sidebar / Primary Tabs -->
+        <aside class="w-full md:w-[380px] lg:w-[420px] h-full bg-[#111b21] border-r border-[#222d34] flex flex-col shrink-0">
+          <!-- Top Bar -->
+          <div class="h-16 px-4 bg-[#202c33] flex items-center justify-between border-b border-[#222d34]">
+            <div class="flex items-center gap-3 cursor-pointer" onclick="STATE.currentScreen='settings'; render();">
+              <div class="relative">
+                <img src="${STATE.user.avatar}" class="w-10 h-10 rounded-full object-cover border border-[#2a3942]" />
+                <span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-[#00a884] border-2 border-[#202c33]"></span>
+              </div>
+              <div>
+                <h2 class="text-xs font-bold text-[#00a884] uppercase tracking-wider flex items-center gap-1">
+                  W WhatsApp
+                  ${STATE.user.privacySettings.isPrivateAccount ? '<i data-lucide="lock" class="w-3 h-3 text-[#00a884]"></i>' : ''}
+                </h2>
+                <p class="text-xs text-[#8696a0] truncate">${STATE.user.name}</p>
+              </div>
+            </div>
+
+            <!-- Action Controls -->
+            <div class="flex items-center gap-1.5 text-[#8696a0]">
+              <button onclick="STATE.currentScreen='admin'; render();" class="p-2 rounded-full hover:bg-[#2a3942] text-[#00a884] transition-colors" title="Admin Control Center">
+                <i data-lucide="shield" class="w-5 h-5"></i>
+              </button>
+              <button onclick="STATE.currentScreen='settings'; render();" class="p-2 rounded-full hover:bg-[#2a3942] text-[#8696a0] hover:text-[#e9edef] transition-colors" title="Settings">
+                <i data-lucide="settings" class="w-5 h-5"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Main Top Navigation Tabs (Chats, Updates, Communities, Calls) -->
+          <div class="h-11 bg-[#202c33] flex items-center justify-around border-b border-[#222d34] text-xs font-semibold shrink-0">
+            <button onclick="STATE.activeTab='chats'; render();" class="flex-1 h-full flex items-center justify-center gap-1 border-b-2 ${STATE.activeTab==='chats'?'border-[#00a884] text-[#00a884] font-bold':'border-transparent text-[#8696a0]'}">
+              <span>Chats</span>
+            </button>
+            <button onclick="STATE.activeTab='updates'; render();" class="flex-1 h-full flex items-center justify-center gap-1 border-b-2 ${STATE.activeTab==='updates'?'border-[#00a884] text-[#00a884] font-bold':'border-transparent text-[#8696a0]'}">
+              <span>Updates</span>
+              <span class="w-2 h-2 rounded-full bg-[#00a884]"></span>
+            </button>
+            <button onclick="STATE.activeTab='communities'; render();" class="flex-1 h-full flex items-center justify-center gap-1 border-b-2 ${STATE.activeTab==='communities'?'border-[#00a884] text-[#00a884] font-bold':'border-transparent text-[#8696a0]'}">
+              <span>Communities</span>
+            </button>
+            <button onclick="STATE.activeTab='calls'; render();" class="flex-1 h-full flex items-center justify-center gap-1 border-b-2 ${STATE.activeTab==='calls'?'border-[#00a884] text-[#00a884] font-bold':'border-transparent text-[#8696a0]'}">
+              <span>Calls</span>
+            </button>
+          </div>
+
+          <!-- Subview Container -->
+          <div class="flex-1 overflow-y-auto flex flex-col">
+            ${STATE.activeTab === 'updates' ? renderUpdatesTab() :
+              STATE.activeTab === 'communities' ? renderCommunitiesTab() :
+              STATE.activeTab === 'calls' ? renderCallsTab() :
+              renderChatsList()}
+          </div>
+
+          <!-- Mobile Bottom Navigation Bar -->
+          <div class="md:hidden h-14 bg-[#202c33] border-t border-[#222d34] flex items-center justify-around text-[#8696a0] shrink-0">
+            <button onclick="STATE.activeTab='chats'; render();" class="flex flex-col items-center gap-0.5 ${STATE.activeTab==='chats'?'text-[#00a884]':''}">
+              <i data-lucide="message-square" class="w-5 h-5"></i>
+              <span class="text-[10px]">Chats</span>
+            </button>
+            <button onclick="STATE.activeTab='updates'; render();" class="flex flex-col items-center gap-0.5 ${STATE.activeTab==='updates'?'text-[#00a884]':''}">
+              <i data-lucide="circle-dot" class="w-5 h-5"></i>
+              <span class="text-[10px]">Updates</span>
+            </button>
+            <button onclick="STATE.activeTab='communities'; render();" class="flex flex-col items-center gap-0.5 ${STATE.activeTab==='communities'?'text-[#00a884]':''}">
+              <i data-lucide="users" class="w-5 h-5"></i>
+              <span class="text-[10px]">Communities</span>
+            </button>
+            <button onclick="STATE.activeTab='calls'; render();" class="flex flex-col items-center gap-0.5 ${STATE.activeTab==='calls'?'text-[#00a884]':''}">
+              <i data-lucide="phone" class="w-5 h-5"></i>
+              <span class="text-[10px]">Calls</span>
+            </button>
+            <button onclick="STATE.currentScreen='settings'; render();" class="flex flex-col items-center gap-0.5">
+              <i data-lucide="settings" class="w-5 h-5"></i>
+              <span class="text-[10px]">Settings</span>
+            </button>
+          </div>
+        </aside>
+
+        <!-- Right Side: Active Chat Screen -->
+        <main class="hidden md:flex flex-1 h-full flex-col bg-[#0b141a] relative overflow-hidden select-none">
+          ${activeChat ? renderActiveChat(activeChat) : `
+            <div class="flex-1 flex flex-col items-center justify-center p-8 text-center text-[#8696a0]">
+              <i data-lucide="laptop" class="w-16 h-16 text-[#00a884] mb-3"></i>
+              <h3 class="text-xl font-light text-[#e9edef]">W WhatsApp Web</h3>
+              <p class="text-xs text-[#8696a0] max-w-sm mt-1">Send and receive messages with end-to-end encryption.</p>
+            </div>
+          `}
+        </main>
+      `;
+    }
+
+    /* 2a. CHATS LIST */
+    function renderChatsList() {
+      return `
+        <!-- Search & Filter bar -->
+        <div class="p-3 bg-[#111b21] border-b border-[#222d34] space-y-2">
+          <div class="relative flex items-center">
+            <i data-lucide="search" class="w-4 h-4 absolute left-3.5 text-[#8696a0]"></i>
+            <input type="text" oninput="STATE.searchQuery=this.value; render();" value="${STATE.searchQuery}" placeholder="Search or start new chat" class="w-full bg-[#202c33] text-sm text-[#e9edef] pl-10 pr-4 py-2 rounded-xl border border-transparent focus:border-[#00a884] focus:outline-none placeholder-[#8696a0]" />
+          </div>
+          <div class="flex items-center gap-1.5 pt-1">
+            ${['all', 'unread', 'favorites', 'groups'].map(chip => `
+              <button onclick="STATE.chatFilter='${chip}'; render();" class="px-3 py-1 text-xs rounded-full font-medium capitalize transition-colors ${STATE.chatFilter===chip?'bg-[#00a884] text-[#111b21] font-bold':'bg-[#202c33] text-[#8696a0]'}">${chip}</button>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- Chat Rows -->
+        <div class="divide-y divide-[#222d34]/60">
+          ${STATE.chats
+            .filter(c => c.name.toLowerCase().includes(STATE.searchQuery.toLowerCase()))
+            .map(c => {
+              const last = c.messages[c.messages.length - 1];
+              const isSelected = c.id === STATE.activeChatId;
+              return `
+                <div onclick="STATE.activeChatId='${c.id}'; render();" class="px-3.5 py-3 flex items-center gap-3.5 cursor-pointer transition-colors ${isSelected?'bg-[#2a3942]':'hover:bg-[#202c33]'}">
+                  <div class="relative shrink-0">
+                    <img src="${c.avatar}" class="w-12 h-12 rounded-full object-cover border border-[#2a3942]" />
+                    ${c.online ? '<span class="absolute bottom-0 right-0 w-3 h-3 bg-[#00a884] border-2 border-[#111b21] rounded-full"></span>' : ''}
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center justify-between mb-0.5">
+                      <h4 class="text-sm font-semibold text-[#e9edef] truncate">${c.name}</h4>
+                      <span class="text-[11px] text-[#8696a0]">${last ? last.time : ''}</span>
+                    </div>
+                    <div class="flex items-center justify-between text-xs text-[#8696a0]">
+                      <span class="truncate pr-2">${c.typing ? '<span class="text-[#00a884] font-medium">typing...</span>' : (last ? last.text : '')}</span>
+                      ${c.unreadCount > 0 ? `<span class="px-1.5 py-0.5 bg-[#00a884] text-[#111b21] font-bold rounded-full text-[10px]">${c.unreadCount}</span>` : ''}
+                    </div>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+        </div>
+      `;
+    }
+
+    /* 2b. UPDATES / STATUS TAB */
+    function renderUpdatesTab() {
+      return `
+        <div class="p-3 space-y-4">
+          <div class="flex items-center gap-3 p-2 rounded-xl bg-[#202c33]/40 border border-[#2a3942]">
+            <img src="${STATE.user.avatar}" class="w-12 h-12 rounded-full object-cover border-2 border-[#00a884]" />
+            <div>
+              <h4 class="text-sm font-semibold text-[#e9edef]">My status</h4>
+              <p class="text-xs text-[#8696a0]">Tap to add status update</p>
+            </div>
+          </div>
+          <div>
+            <h4 class="text-xs font-bold text-[#00a884] uppercase tracking-wider mb-2">Recent updates</h4>
+            ${STATE.statuses.map(s => `
+              <div onclick="showToast('Viewing status from ${s.userName}');" class="flex items-center gap-3 p-2 rounded-xl hover:bg-[#202c33] cursor-pointer transition-colors">
+                <div class="p-0.5 rounded-full border-2 border-[#00a884]">
+                  <img src="${s.avatar}" class="w-10 h-10 rounded-full object-cover" />
+                </div>
+                <div>
+                  <h5 class="text-sm font-medium text-[#e9edef]">${s.userName}</h5>
+                  <p class="text-xs text-[#8696a0]">${s.time}</p>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    /* 2c. COMMUNITIES TAB */
+    function renderCommunitiesTab() {
+      return `
+        <div class="p-4 space-y-4">
+          <div class="p-3 rounded-2xl bg-[#202c33]/50 border border-[#2a3942] flex items-center gap-3 cursor-pointer" onclick="showToast('New community creator');">
+            <div class="w-11 h-11 rounded-xl bg-[#00a884] flex items-center justify-center text-[#111b21]">
+              <i data-lucide="plus" class="w-6 h-6 stroke-[3]"></i>
+            </div>
+            <div>
+              <h4 class="text-sm font-bold text-[#e9edef]">New community</h4>
+              <p class="text-xs text-[#8696a0]">Bring members together in topic groups</p>
+            </div>
+          </div>
+          <div class="rounded-2xl bg-[#111b21] border border-[#222d34] p-3 space-y-2">
+            <h5 class="text-xs font-bold text-[#00a884] uppercase">Tech Innovators Hub</h5>
+            <div class="p-2 rounded-xl bg-[#202c33] text-xs text-[#e9edef] flex justify-between">
+              <span>Announcements 📢</span>
+              <span class="text-[#8696a0]">10:30 AM</span>
+            </div>
+            <div class="p-2 rounded-xl bg-[#202c33] text-xs text-[#e9edef] flex justify-between">
+              <span>General Chat 💻</span>
+              <span class="text-[#8696a0]">Yesterday</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    /* 2d. CALLS TAB */
+    function renderCallsTab() {
+      return `
+        <div class="p-3 space-y-3">
+          <div class="p-3 bg-[#202c33]/40 border border-[#2a3942] rounded-2xl flex items-center gap-3 cursor-pointer" onclick="navigator.clipboard.writeText(window.location.href); showToast('Call link copied!');">
+            <div class="w-10 h-10 rounded-full bg-[#00a884] flex items-center justify-center text-[#111b21]">
+              <i data-lucide="link" class="w-5 h-5 stroke-[2.5]"></i>
+            </div>
+            <div>
+              <h4 class="text-sm font-semibold text-[#e9edef]">Create call link</h4>
+              <p class="text-xs text-[#8696a0]">Share a link for your W WhatsApp call</p>
+            </div>
+          </div>
+          <h4 class="text-xs uppercase font-bold text-[#8696a0] px-2 pt-2">Recent Calls</h4>
+          ${STATE.calls.map(c => `
+            <div class="flex items-center justify-between p-2.5 rounded-xl hover:bg-[#202c33]">
+              <div class="flex items-center gap-3">
+                <img src="${c.avatar}" class="w-10 h-10 rounded-full object-cover" />
+                <div>
+                  <h5 class="text-sm font-semibold ${c.direction==='missed'?'text-[#ea4335]':'text-[#e9edef]'}">${c.name}</h5>
+                  <p class="text-xs text-[#8696a0]">${c.time}</p>
+                </div>
+              </div>
+              <button onclick="startCall('${c.name}', '${c.avatar}', '${c.type}');" class="p-2 text-[#00a884] hover:bg-[#2a3942] rounded-full">
+                <i data-lucide="${c.type==='video'?'video':'phone'}" class="w-5 h-5"></i>
+              </button>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    /* 2e. ACTIVE CHAT SCREEN */
+    function renderActiveChat(chat) {
+      return `
+        <!-- Header -->
+        <div class="h-16 px-4 bg-[#202c33] flex items-center justify-between border-b border-[#222d34] shrink-0 z-20">
+          <div class="flex items-center gap-3">
+            <img src="${chat.avatar}" class="w-10 h-10 rounded-full object-cover border border-[#2a3942]" />
+            <div>
+              <h3 class="text-sm font-bold text-[#e9edef]">${chat.name}</h3>
+              <p class="text-xs text-[#8696a0]">${chat.typing ? '<span class="text-[#00a884] font-semibold">typing...</span>' : (chat.online ? 'online' : 'last seen recently')}</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 text-[#8696a0]">
+            <button onclick="startCall('${chat.name}', '${chat.avatar}', 'voice');" class="p-2 rounded-full hover:bg-[#2a3942] hover:text-[#e9edef]" title="Audio Call">
+              <i data-lucide="phone" class="w-5 h-5"></i>
+            </button>
+            <button onclick="startCall('${chat.name}', '${chat.avatar}', 'video');" class="p-2 rounded-full hover:bg-[#2a3942] hover:text-[#e9edef]" title="Video Call">
+              <i data-lucide="video" class="w-5 h-5"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Messages Canvas -->
+        <div id="messages-container" class="flex-1 overflow-y-auto p-4 space-y-3.5 whatsapp-chat-bg">
+          <div class="flex justify-center my-2">
+            <span class="bg-[#182229]/90 border border-[#222d34] text-[11px] text-[#8696a0] px-3 py-1 rounded-lg">
+              Messages and calls are end-to-end encrypted.
+            </span>
+          </div>
+
+          ${chat.messages.map(m => {
+            const isMe = m.senderId === 'me';
+            return `
+              <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'}">
+                <div class="relative max-w-[75%] rounded-2xl px-3.5 py-2 text-sm shadow-sm ${isMe ? 'bg-[#005c4b] text-[#e9edef] rounded-tr-none' : 'bg-[#202c33] text-[#e9edef] rounded-tl-none'}">
+                  ${m.type === 'image' ? `
+                    <div class="rounded-xl overflow-hidden mb-1 max-h-60 bg-black/40">
+                      <img src="${m.mediaUrl}" class="w-full h-full object-cover" />
+                    </div>
+                  ` : ''}
+                  ${m.type === 'voice' ? `
+                    <div class="flex items-center gap-3 py-1 min-w-[220px]">
+                      <button onclick="playSentSound(); showToast('Playing voice note');" class="w-9 h-9 rounded-full bg-[#00a884] text-white flex items-center justify-center shrink-0">
+                        <i data-lucide="play" class="w-4 h-4 fill-current ml-0.5"></i>
+                      </button>
+                      <div class="flex-1">
+                        <div class="h-1.5 bg-[#8696a0]/30 rounded-full overflow-hidden">
+                          <div class="h-full bg-[#00a884] w-2/3"></div>
+                        </div>
+                        <div class="flex justify-between text-[10px] text-[#8696a0] mt-1">
+                          <span>0:24</span>
+                          <span class="font-bold">1.5x</span>
+                        </div>
+                      </div>
+                    </div>
+                  ` : ''}
+                  <p class="leading-relaxed pr-14">${m.text}</p>
+                  <div class="float-right -mt-2 -mb-0.5 text-[10px] text-[#8696a0] flex items-center gap-1">
+                    <span>${m.time}</span>
+                    ${isMe ? '<i data-lucide="check-check" class="w-3.5 h-3.5 text-[#53bdeb]"></i>' : ''}
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+
+        <!-- Bottom Input Bar -->
+        <div class="p-3 bg-[#202c33] border-t border-[#222d34] flex items-center gap-2">
+          <button onclick="sendAttachment('image');" class="p-2 hover:bg-[#2a3942] text-[#8696a0] hover:text-[#e9edef] rounded-full" title="Send Photo">
+            <i data-lucide="image" class="w-6 h-6"></i>
+          </button>
+          <button onclick="sendAttachment('video');" class="p-2 hover:bg-[#2a3942] text-[#8696a0] hover:text-[#e9edef] rounded-full" title="Send Video">
+            <i data-lucide="video" class="w-6 h-6"></i>
+          </button>
+          <input id="chat-msg-input" onkeydown="if(event.key==='Enter') sendChatMessage();" type="text" placeholder="Type a message" class="flex-1 bg-[#2a3942] text-[#e9edef] px-4 py-2.5 rounded-xl border border-transparent focus:border-[#00a884] focus:outline-none placeholder-[#8696a0] text-sm" />
+          <button onclick="sendChatMessage();" class="w-10 h-10 rounded-full bg-[#00a884] hover:bg-[#008f6f] text-[#111b21] flex items-center justify-center shadow-lg transition-transform active:scale-90" title="Send">
+            <i data-lucide="send" class="w-5 h-5 ml-0.5"></i>
+          </button>
+        </div>
+      `;
+    }
+
+    /* 3. SETTINGS SCREEN MATCHING WHATSAPP ORIGINAL */
+    function renderSettings() {
+      return `
+        <div class="w-full h-full bg-[#0b141a] text-[#e9edef] flex flex-col overflow-y-auto">
+          <!-- Top Bar -->
+          <div class="h-16 px-4 bg-[#111b21] flex items-center justify-between border-b border-[#222d34] shrink-0 sticky top-0 z-30">
+            <div class="flex items-center gap-3">
+              <button onclick="STATE.currentScreen='messenger'; render();" class="p-2 rounded-full hover:bg-[#202c33]">
+                <i data-lucide="arrow-left" class="w-5 h-5"></i>
+              </button>
+              <h1 class="text-xl font-bold text-[#e9edef]">Settings</h1>
+            </div>
+            <button onclick="showToast('Settings search active');" class="p-2 rounded-full hover:bg-[#202c33] text-[#8696a0] hover:text-[#e9edef]">
+              <i data-lucide="search" class="w-5 h-5"></i>
+            </button>
+          </div>
+
+          <!-- Profile Card -->
+          <div class="p-4 bg-[#111b21] border-b border-[#222d34] flex items-center justify-between">
+            <div class="flex items-center gap-4">
+              <img src="${STATE.user.avatar}" class="w-16 h-16 rounded-full object-cover border-2 border-[#00a884]" />
+              <div>
+                <h2 class="text-base font-bold text-[#e9edef]">${STATE.user.name}</h2>
+                <p class="text-xs text-[#8696a0] mt-0.5">${STATE.user.about}</p>
+                <p class="text-xs text-[#00a884] font-mono mt-0.5">${STATE.user.phone}</p>
+              </div>
+            </div>
+            <button onclick="showToast('QR Code Scanner opened');" class="p-2.5 rounded-full hover:bg-[#202c33] text-[#00a884]">
+              <i data-lucide="qr-code" class="w-6 h-6"></i>
+            </button>
+          </div>
+
+          <!-- Settings Items List -->
+          <div class="divide-y divide-[#222d34]/60 bg-[#111b21]">
+            ${[
+              { id: 'linked', icon: 'laptop', title: 'Linked devices', sub: 'Use WhatsApp on other devices' },
+              { id: 'account', icon: 'key-round', title: 'Account', sub: 'Security notifications, change number' },
+              { id: 'privacy', icon: 'lock', title: 'Privacy', sub: 'Blocked accounts, disappearing messages', badge: STATE.user.privacySettings.isPrivateAccount ? 'Private' : null },
+              { id: 'lists', icon: 'list-filter', title: 'Lists', sub: 'Manage people and groups' },
+              { id: 'chats', icon: 'message-square', title: 'Chats', sub: 'Theme, wallpapers, chat history' },
+              { id: 'appearance', icon: 'palette', title: 'Appearance', sub: 'Chat theme, app icon, app theme' },
+              { id: 'notifications', icon: 'bell', title: 'Notifications', sub: 'Message, group & call tones' },
+              { id: 'storage', icon: 'hard-drive', title: 'Storage and data', sub: 'Network usage, auto-download' },
+              { id: 'meta', icon: 'share-2', title: 'Facebook & Instagram', sub: 'Connect to reach more customers' },
+              { id: 'accessibility', icon: 'accessibility', title: 'Accessibility', sub: 'Increase contrast, animation' }
+            ].map(item => `
+              <div onclick="handleSettingClick('${item.id}');" class="px-5 py-4 flex items-center justify-between hover:bg-[#202c33] cursor-pointer transition-colors">
+                <div class="flex items-center gap-4">
+                  <div class="text-[#8696a0]">
+                    <i data-lucide="${item.icon}" class="w-5 h-5"></i>
+                  </div>
+                  <div>
+                    <h4 class="text-sm font-medium text-[#e9edef]">${item.title}</h4>
+                    <p class="text-xs text-[#8696a0]">${item.sub}</p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2">
+                  ${item.badge ? `<span class="text-[11px] bg-[#00a884]/20 text-[#00a884] px-2 py-0.5 rounded-full font-bold">${item.badge}</span>` : ''}
+                  <i data-lucide="chevron-right" class="w-4 h-4 text-[#8696a0]"></i>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+
+          <!-- Bottom Meta & Logout -->
+          <div class="p-6 text-center space-y-4">
+            <p class="text-xs text-[#8696a0]">Also from Meta · Instagram · Facebook</p>
+            <button onclick="STATE.currentScreen='auth'; render();" class="w-full max-w-sm py-2.5 rounded-xl bg-[#ea4335]/15 text-[#ea4335] text-xs font-bold hover:bg-[#ea4335]/25 transition-colors">
+              Log Out / Re-verify Phone
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    /* 4. ADMIN CONTROL CENTER */
+    function renderAdmin() {
+      return `
+        <div class="w-full h-full bg-[#0b141a] text-[#e9edef] flex flex-col overflow-hidden">
+          <!-- Admin Header -->
+          <div class="h-16 px-6 bg-[#111b21] border-b border-[#222d34] flex items-center justify-between shrink-0">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-xl bg-[#00a884] flex items-center justify-center text-[#111b21] font-bold">
+                <i data-lucide="shield-check" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <h2 class="text-sm font-bold text-[#e9edef]">W WhatsApp - Admin Control Center</h2>
+                <p class="text-[10px] text-[#00a884] font-semibold uppercase">Enterprise Portal</p>
+              </div>
+            </div>
+            <button onclick="STATE.currentScreen='messenger'; render();" class="px-4 py-2 bg-[#202c33] hover:bg-[#2a3942] text-[#00a884] rounded-xl text-xs font-bold border border-[#2a3942]">
+              ← Open Messenger
+            </button>
+          </div>
+
+          <!-- Dashboard Content -->
+          <div class="flex-1 overflow-y-auto p-6 space-y-6">
+            <!-- Analytics Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div class="p-4 bg-[#111b21] border border-[#222d34] rounded-2xl">
+                <span class="text-xs text-[#8696a0]">Total Users</span>
+                <h3 class="text-2xl font-bold text-[#e9edef] mt-2">14,820</h3>
+                <span class="text-[10px] text-[#00a884] font-bold">+12.4% this week</span>
+              </div>
+              <div class="p-4 bg-[#111b21] border border-[#222d34] rounded-2xl">
+                <span class="text-xs text-[#8696a0]">Active Users</span>
+                <h3 class="text-2xl font-bold text-[#00a884] mt-2">12,410</h3>
+                <span class="text-[10px] text-[#00a884] font-bold">94.8% health</span>
+              </div>
+              <div class="p-4 bg-[#111b21] border border-[#222d34] rounded-2xl">
+                <span class="text-xs text-[#8696a0]">Blocked Accounts</span>
+                <h3 class="text-2xl font-bold text-[#ea4335] mt-2">${STATE.adminUsers.filter(u=>u.status==='Blocked').length}</h3>
+                <span class="text-[10px] text-[#8696a0]">Policy restrictions</span>
+              </div>
+              <div class="p-4 bg-[#111b21] border border-[#222d34] rounded-2xl">
+                <span class="text-xs text-[#8696a0]">Pending Tickets</span>
+                <h3 class="text-2xl font-bold text-[#ffd279] mt-2">${STATE.supportTickets.filter(t=>t.status==='Pending').length}</h3>
+                <span class="text-[10px] text-[#00a884]">Avg reply: 6m</span>
+              </div>
+            </div>
+
+            <!-- User Management Table -->
+            <div class="bg-[#111b21] border border-[#222d34] rounded-2xl overflow-hidden shadow-xl">
+              <div class="p-4 bg-[#202c33]/70 border-b border-[#222d34] flex items-center justify-between">
+                <h3 class="text-sm font-bold text-[#e9edef]">User Accounts Management</h3>
+                <button onclick="addNewAdminUser();" class="px-3 py-1.5 bg-[#00a884] text-[#111b21] font-bold rounded-lg text-xs">+ Add User</button>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs text-[#8696a0]">
+                  <thead class="bg-[#111b21] text-[#8696a0] uppercase text-[10px] border-b border-[#222d34]">
+                    <tr>
+                      <th class="p-4">User</th>
+                      <th class="p-4">Phone / Email</th>
+                      <th class="p-4">Registered</th>
+                      <th class="p-4">Status</th>
+                      <th class="p-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-[#222d34]/60">
+                    ${STATE.adminUsers.map(u => `
+                      <tr class="hover:bg-[#202c33]/40">
+                        <td class="p-4 flex items-center gap-3">
+                          <img src="${u.avatar}" class="w-8 h-8 rounded-full object-cover" />
+                          <span class="font-bold text-[#e9edef]">${u.name}</span>
+                        </td>
+                        <td class="p-4 font-mono text-[11px] text-[#e9edef]">${u.phone}</td>
+                        <td class="p-4">${u.regDate}</td>
+                        <td class="p-4">
+                          <button onclick="toggleBlockUser('${u.id}');" class="px-2.5 py-1 rounded-full text-[10px] font-bold ${u.status==='Active'?'bg-[#00a884]/20 text-[#00a884] border border-[#00a884]/40':'bg-[#ea4335]/20 text-[#ea4335] border border-[#ea4335]/40'}">
+                            ${u.status}
+                          </button>
+                        </td>
+                        <td class="p-4 text-right space-x-2">
+                          <button onclick="alert('User Dossier:\\nName: ${u.name}\\nPhone: ${u.phone}\\nLocation: ${u.location}\\nMessages: ${u.messagesCount}');" class="px-2.5 py-1 bg-[#202c33] rounded-lg text-[#e9edef] hover:bg-[#2a3942]">Details</button>
+                          <button onclick="toggleBlockUser('${u.id}');" class="px-2.5 py-1 ${u.status==='Active'?'bg-[#ea4335]/20 text-[#ea4335]':'bg-[#00a884]/20 text-[#00a884]'} rounded-lg font-bold">${u.status==='Active'?'Block':'Unblock'}</button>
+                        </td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Help & Support Tickets -->
+            <div class="bg-[#111b21] border border-[#222d34] rounded-2xl p-4 space-y-3">
+              <h3 class="text-sm font-bold text-[#e9edef]">Support Inquiries & Appeals</h3>
+              <div class="divide-y divide-[#222d34]">
+                ${STATE.supportTickets.map(t => `
+                  <div class="py-3 flex items-start justify-between">
+                    <div>
+                      <div class="flex items-center gap-2">
+                        <span class="font-bold text-xs text-[#e9edef]">${t.userName}</span>
+                        <span class="text-[10px] text-[#8696a0]">${t.timestamp}</span>
+                      </div>
+                      <p class="text-xs text-[#00a884] font-medium mt-0.5">${t.subject}</p>
+                      <p class="text-xs text-[#8696a0] mt-0.5">${t.message}</p>
+                    </div>
+                    <button onclick="t.status=t.status==='Pending'?'Resolved':'Pending'; showToast('Ticket status updated'); render();" class="px-3 py-1.5 rounded-lg text-xs font-bold ${t.status==='Resolved'?'bg-[#00a884]/20 text-[#00a884]':'bg-[#ffd279]/20 text-[#ffd279]'}">
+                      ${t.status === 'Resolved' ? 'Resolved' : 'Resolve'}
+                    </button>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    /* =========================================================================
+       ACTION HANDLERS
+       ========================================================================= */
+    function sendChatMessage() {
+      const input = document.getElementById('chat-msg-input');
+      if (!input || !input.value.trim()) return;
+
+      const text = input.value.trim();
+      input.value = '';
+
+      playSentSound();
+
+      const chat = STATE.chats.find(c => c.id === STATE.activeChatId);
+      if (!chat) return;
+
+      chat.messages.push({
+        id: 'm_' + Date.now(),
+        senderId: 'me',
+        text: text,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        status: 'delivered',
+        type: 'text'
+      });
+      render();
+
+      // Auto Reply simulation
+      setTimeout(() => {
+        chat.typing = true;
+        render();
+      }, 700);
+
+      setTimeout(() => {
+        chat.typing = false;
+        chat.messages.forEach(m => m.status = 'read');
+        chat.messages.push({
+          id: 'm_' + Date.now(),
+          senderId: 'contact',
+          text: 'Got your message! Looks super clean 👍',
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          status: 'read',
+          type: 'text'
+        });
+        playReceivedSound();
+        render();
+      }, 2400);
+    }
+
+    function sendAttachment(type) {
+      const chat = STATE.chats.find(c => c.id === STATE.activeChatId);
+      if (!chat) return;
+      playSentSound();
+      if (type === 'image') {
+        chat.messages.push({
+          id: 'm_' + Date.now(),
+          senderId: 'me',
+          text: 'Design Inspiration 📸',
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          status: 'delivered',
+          type: 'image',
+          mediaUrl: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=800&auto=format&fit=crop&q=80'
+        });
+      } else {
+        chat.messages.push({
+          id: 'm_' + Date.now(),
+          senderId: 'me',
+          text: 'Feature demo preview video 🎬',
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          status: 'delivered',
+          type: 'text'
+        });
+      }
+      render();
+    }
+
+    function startCall(name, avatar, type) {
+      startRingtone();
+      alert(`W WhatsApp Call Connecting...\\n${name} (${type.toUpperCase()} Call)\\n\\n(End-to-End Encrypted Call Simulation)`);
+      setTimeout(() => stopRingtone(), 3000);
+    }
+
+    function handleSettingClick(id) {
+      if (id === 'privacy') {
+        STATE.user.privacySettings.isPrivateAccount = !STATE.user.privacySettings.isPrivateAccount;
+        showToast('Private Account is now: ' + (STATE.user.privacySettings.isPrivateAccount ? 'Enabled' : 'Disabled'));
+        render();
+      } else {
+        showToast('Viewing ' + id + ' settings');
+      }
+    }
+
+    function toggleBlockUser(id) {
+      const u = STATE.adminUsers.find(x => x.id === id);
+      if (!u) return;
+      u.status = u.status === 'Active' ? 'Blocked' : 'Active';
+      showToast(`${u.name} is now ${u.status}`);
+      render();
+    }
+
+    function addNewAdminUser() {
+      const name = prompt('Enter user name:');
+      if (!name) return;
+      STATE.adminUsers.unshift({
+        id: 'u_' + Date.now(),
+        name: name,
+        avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
+        phone: '+1 (555) 000-' + Math.floor(1000 + Math.random() * 9000),
+        email: name.toLowerCase().replace(/\s+/g, '') + '@example.com',
+        regDate: 'Today',
+        status: 'Active',
+        messagesCount: 0,
+        location: 'New York, US'
+      });
+      showToast('Created user ' + name);
+      render();
+    }
+
+    // Initialize application
+    window.addEventListener('DOMContentLoaded', () => {
+      render();
+    });
+  </script>
+</body>
+</html>
